@@ -1,7 +1,15 @@
 [
   {
     "id": "inicio",
-    "pregunta": "Vamos a calcular un sistema de calefacción. ¿Cuál es la superficie útil a calefaccionar con piso radiante (en m²)?",
+    "pregunta": "¿Qué tipo de calefacción desea calcular?",
+    "opciones": [
+      { "texto": "Piso radiante", "siguiente": "superficie_piso" },
+      { "texto": "Radiadores", "siguiente": "dimensiones_radiador" }
+    ]
+  },
+  {
+    "id": "superficie_piso",
+    "pregunta": "¿Cuál es la superficie útil a calefaccionar con piso radiante (en m²)?",
     "tipo": "entrada_usuario",
     "variable": "superficie",
     "siguiente": "tipo_piso"
@@ -10,37 +18,17 @@
     "id": "tipo_piso",
     "pregunta": "¿Qué tipo de pavimento tiene el ambiente?",
     "opciones": [
-      {
-        "texto": "Cerámica / Mármol / Cemento alisado",
-        "valor": "ceramica",
-        "siguiente": "zona_geografica"
-      },
-      {
-        "texto": "Madera fina / Parquet / PVC",
-        "valor": "madera",
-        "siguiente": "zona_geografica"
-      },
-      {
-        "texto": "Alfombra fina",
-        "valor": "alfombra",
-        "siguiente": "zona_geografica"
-      }
+      { "texto": "Cerámica / Mármol / Cemento alisado", "valor": "ceramica", "siguiente": "zona_geografica" },
+      { "texto": "Madera fina / Parquet / PVC", "valor": "madera", "siguiente": "zona_geografica" },
+      { "texto": "Alfombra fina", "valor": "alfombra", "siguiente": "zona_geografica" }
     ]
   },
   {
     "id": "zona_geografica",
     "pregunta": "¿En qué zona del país se encuentra la instalación?",
     "opciones": [
-      {
-        "texto": "Zona Centro/Norte",
-        "valor": "norte",
-        "siguiente": "calculo_piso_radiante"
-      },
-      {
-        "texto": "Zona Sur",
-        "valor": "sur",
-        "siguiente": "calculo_piso_radiante"
-      }
+      { "texto": "Zona Centro/Norte", "valor": "norte", "siguiente": "calculo_piso_radiante" },
+      { "texto": "Zona Sur", "valor": "sur", "siguiente": "calculo_piso_radiante" }
     ]
   },
   {
@@ -48,10 +36,7 @@
     "tipo": "calculo",
     "descripcion": "Cálculo de piso radiante",
     "parametros": {
-      "potencia_m2": {
-        "norte": 100,
-        "sur": 125
-      },
+      "potencia_m2": { "norte": 100, "sur": 125 },
       "densidad_caño": 5,
       "longitud_maxima_circuito": 100
     },
@@ -67,46 +52,24 @@
     "tipo": "respuesta",
     "texto": "PISO RADIANTE:\n- Superficie: {{superficie}} m²\n- Potencia estimada: {{carga_termica}} W\n- Caños: {{longitud_total}} m\n- Circuitos sugeridos: {{circuitos}} de hasta 100 m\n\n¿Deseás calcular también radiadores para otro ambiente?",
     "opciones": [
-      {
-        "texto": "Sí",
-        "siguiente": "dimensiones_radiador"
-      },
-      {
-        "texto": "No",
-        "siguiente": "fin"
-      }
+      { "texto": "Sí", "siguiente": "dimensiones_radiador" },
+      { "texto": "No", "siguiente": "fin" }
     ]
   },
   {
     "id": "dimensiones_radiador",
     "pregunta": "Indica las dimensiones del ambiente a calefaccionar con radiadores (en metros): largo, ancho y alto.",
     "tipo": "entrada_usuario",
-    "variables": [
-      "largo",
-      "ancho",
-      "alto"
-    ],
+    "variables": ["largo", "ancho", "alto"],
     "siguiente": "nivel_aislacion"
   },
   {
     "id": "nivel_aislacion",
     "pregunta": "¿Qué nivel de aislación térmica tiene el ambiente?",
     "opciones": [
-      {
-        "texto": "Alta",
-        "valor": "alta",
-        "siguiente": "calculo_carga_termica"
-      },
-      {
-        "texto": "Media",
-        "valor": "media",
-        "siguiente": "calculo_carga_termica"
-      },
-      {
-        "texto": "Baja",
-        "valor": "baja",
-        "siguiente": "calculo_carga_termica"
-      }
+      { "texto": "Alta", "valor": "alta", "siguiente": "calculo_carga_termica" },
+      { "texto": "Media", "valor": "media", "siguiente": "calculo_carga_termica" },
+      { "texto": "Baja", "valor": "baja", "siguiente": "calculo_carga_termica" }
     ]
   },
   {
@@ -114,11 +77,7 @@
     "tipo": "calculo",
     "descripcion": "Cálculo de carga térmica ambiente para radiadores",
     "parametros": {
-      "K": {
-        "alta": 30,
-        "media": 40,
-        "baja": 50
-      }
+      "K": { "alta": 30, "media": 40, "baja": 50 }
     },
     "acciones": [
       "volumen = largo * ancho * alto",
@@ -130,26 +89,11 @@
     "id": "seleccion_modelo",
     "pregunta": "Seleccioná el modelo de radiador PEISA que desea utilizar:",
     "opciones": [
-      {
-        "texto": "BROEN PLUS",
-        "siguiente": "resultado_radiador"
-      },
-      {
-        "texto": "SQUADRA PLUS",
-        "siguiente": "resultado_radiador"
-      },
-      {
-        "texto": "TROPICAL",
-        "siguiente": "resultado_radiador"
-      },
-      {
-        "texto": "BROEN",
-        "siguiente": "resultado_radiador"
-      },
-      {
-        "texto": "SQUADRA",
-        "siguiente": "resultado_radiador"
-      }
+      { "texto": "BROEN PLUS", "siguiente": "resultado_radiador" },
+      { "texto": "SQUADRA PLUS", "siguiente": "resultado_radiador" },
+      { "texto": "TROPICAL", "siguiente": "resultado_radiador" },
+      { "texto": "BROEN", "siguiente": "resultado_radiador" },
+      { "texto": "SQUADRA", "siguiente": "resultado_radiador" }
     ]
   },
   {
