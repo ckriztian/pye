@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEISA Advisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <style>
+        .chat-message {
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            margin-left: auto;
+            background-color: #3b82f6;
+            color: white;
+        }
+        .system-message {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .option-btn {
+            transition: all 0.2s;
+        }
+        .option-btn:hover {
+            transform: translateY(-2px);
+        }
+        input[inputmode="decimal"] {
+            font-family: monospace;
+        }
+        .input-hint {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .response-item {
+            margin: 0.25rem 0;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .response-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto p-4 max-w-2xl">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div class="bg-blue-600 text-white p-4">
+                <h1 class="text-xl font-bold">PEISA Advisor</h1>
+                <p class="text-sm opacity-80">Asistente para cálculos de calefacción</p>
+            </div>
+            
+            <!-- Chat container -->
+            <div id="chat-container" class="p-4 h-96 overflow-y-auto space-y-3">
+                <!-- Mensajes aparecerán aquí -->
+            </div>
+            
+            <!-- Input area -->
+            <div id="input-area" class="p-4 border-t border-gray-200">
+                <!-- Se llenará dinámicamente según el tipo de pregunta -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationId = 'user_' + Math.random().toString(36).substr(2, 9);
+        let lastUserResponse = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            startConversation();
+        });
+        
+        function startConversation() {
+            fetch('/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ conversation_id: conversationId })
+            })
+            .then(response => response.json())
+            .then(data => handleServerResponse(data))
+            .catch(error => {
+                appendMessage('system', '<span class="text-red-600">Error al conectar con el servidor. Por favor recarga la página.</span>');
+                console.error('Error:', error);
+            });
+        }
+        
+        function handleServerResponse(response) {
+            if (response.error) {
+                if (response.type === 'input_error') {
+                    appendMessage('system', `<span class="text-red-600">${response.error}</span><br>${response.text}`);
+                    recreateInputFields(response.node_id);
+                } else {
+                    appendMessage('system', '<span class="text-red-600">Error: ' + response.error + '</span>');
+                }
+                return;
+            }
+            
+            const chatContainer = document.getElementById('chat-container');
+            const inputArea = document.getElementById('input-area');
+            
+            // Limpiar área de entrada
+            inputArea.innerHTML = '';
+            
+            // Mostrar la respuesta del usuario primero si existe
+            if (lastUserResponse) {
+                appendMessage('user', lastUserResponse);
+                lastUserResponse = null;
+            }
+            
+            // Mostrar mensaje del sistema
+            if (response.text) {
+                appendMessage('system', formatResponseText(response.text));
+            }
+            
+            // Manejar diferentes tipos de respuesta
+            if (response.type === 'question') {
+                if (response.options) {
+                    // Pregunta con opciones múltiples
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.className = 'space-y-2';
+                    
+                    response.options.forEach((option, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn w-full bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-4 rounded';
+                        btn.textContent = option;
+                        btn.onclick = () => {
+                            lastUserResponse = option;
+                            selectOption(index);
+                        };
+                        optionsDiv.appendChild(btn);
+                    });
+                    
+                    inputArea.appendChild(optionsDiv);
+                } else if (response.input_type === 'number') {
+                    // Entrada numérica simple
+                    const form = document.createElement('form');
+                    form.onsubmit = (e) => {
+                        e.preventDefault();
+                        const value = document.getElementById('input-value').value;
+                        lastUserResponse = value;
+                        sendReply({ input_values: { value } });
+                    };
+                    
+                    form.innerHTML = `
+                        <div class="flex flex-col space-y-2">
+                            <input type="text" inputmode="decimal" id="input-value" required 
+                                   class="border border-gray-300 rounded px-3 py-2"
+                                   placeholder="${response.input_label || 'Ej: 12.5'}">
+                            <div class="input-hint">Ingrese un valor en ${response.input_label.includes('superficie') ? 'm²' : 'metros'} (ej: 4.5, 3.75)</div>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+                                Enviar
+                            </button>
+                        </div>
+                    `;
+                    inputArea.appendChild(form);
+                    document.getElementById('input-value').focus();
+                } else if (response.input_type === 'multiple') {
+                    // Múltiples entradas (para dimensiones)
+                    createDimensionsInputForm();
+                }
+            } else if (response.type === 'response') {
+                // Respuesta con posiblemente opciones
+                if (response.options) {
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.className = 'space-y-2 mt-3';
+                    
+                    response.options.forEach((option, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn w-full bg-green-100 hover:bg-green-200 text-green-800 py-2 px-4 rounded';
+                        btn.textContent = option;
+                        btn.onclick = () => {
+                            lastUserResponse = option;
+                            selectOption(index);
+                        };
+                        optionsDiv.appendChild(btn);
+                    });
+                    
+                    inputArea.appendChild(optionsDiv);
+                } else if (response.is_final) {
+                    const restartBtn = document.createElement('button');
+                    restartBtn.className = 'w-full bg-blue-600 text-white py-2 px-4 rounded';
+                    restartBtn.textContent = 'Iniciar nuevo cálculo';
+                    restartBtn.onclick = () => {
+                        conversationId = 'user_' + Math.random().toString(36).substr(2, 9);
+                        document.getElementById('chat-container').innerHTML = '';
+                        lastUserResponse = null;
+                        startConversation();
+                    };
+                    inputArea.appendChild(restartBtn);
+                }
+            }
+            
+            // Auto-scroll al final del chat
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function formatResponseText(text) {
+            // Convertir saltos de línea a <br>
+            let formatted = text.replace(/\n/g, '<br>');
+            
+            // Formatear items de lista de manera consistente
+            formatted = formatted.replace(/<br>- /g, '<br>• ');
+            
+            return formatted;
+        }
+        
+        function createDimensionsInputForm() {
+            const inputArea = document.getElementById('input-area');
+            const form = document.createElement('form');
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                const values = {
+                    largo: document.getElementById('input-largo').value,
+                    ancho: document.getElementById('input-ancho').value,
+                    alto: document.getElementById('input-alto').value
+                };
+                
+                // Validación básica en el cliente
+                let isValid = true;
+                const userResponses = [];
+                
+                ['largo', 'ancho', 'alto'].forEach(id => {
+                    const input = document.getElementById(`input-${id}`);
+                    const errorElement = document.getElementById(`error-${id}`);
+                    const value = input.value.replace(',', '.');
+                    
+                    if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
+                        errorElement.textContent = 'Ingrese un número válido mayor que 0';
+                        isValid = false;
+                    } else {
+                        errorElement.textContent = '';
+                        userResponses.push(`${id}: ${value} m`);
+                    }
+                });
+                
+                if (isValid) {
+                    lastUserResponse = `Dimensiones: ${userResponses.join(', ')}`;
+                    sendReply({ input_values: values });
+                }
+            };
+            
+            form.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label for="input-largo" class="block text-sm font-medium text-gray-700 mb-1">Largo (metros)</label>
+                        <input type="text" inputmode="decimal" id="input-largo" required
+                               class="w-full border border-gray-300 rounded px-3 py-2"
+                               placeholder="Ej: 4.5">
+                        <div id="error-largo" class="error-message"></div>
+                    </div>
+                    <div>
+                        <label for="input-ancho" class="block text-sm font-medium text-gray-700 mb-1">Ancho (metros)</label>
+                        <input type="text" inputmode="decimal" id="input-ancho" required
+                               class="w-full border border-gray-300 rounded px-3 py-2"
+                               placeholder="Ej: 3.75">
+                        <div id="error-ancho" class="error-message"></div>
+                    </div>
+                    <div>
+                        <label for="input-alto" class="block text-sm font-medium text-gray-700 mb-1">Alto (metros)</label>
+                        <input type="text" inputmode="decimal" id="input-alto" required
+                               class="w-full border border-gray-300 rounded px-3 py-2"
+                               placeholder="Ej: 2.8">
+                        <div id="error-alto" class="error-message"></div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded mt-2">
+                        Calcular
+                    </button>
+                </div>
+            `;
+            inputArea.appendChild(form);
+            document.getElementById('input-largo').focus();
+        }
+        
+        function selectOption(optionIndex) {
+            sendReply({ option_index: optionIndex });
+        }
+        
+        function sendReply(data) {
+            data.conversation_id = conversationId;
+            
+            fetch('/reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => handleServerResponse(data))
+            .catch(error => {
+                appendMessage('system', '<span class="text-red-600">Error al enviar la respuesta. Por favor intenta nuevamente.</span>');
+                console.error('Error:', error);
+            });
+        }
+        
+        function appendMessage(sender, text) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = `chat-message rounded-lg p-3 ${sender === 'system' ? 
+                'system-message' : 
+                'user-message'}`;
+            
+            messageDiv.innerHTML = text;
+            chatContainer.appendChild(messageDiv);
+        }
+    </script>
+</body>
+</html>
