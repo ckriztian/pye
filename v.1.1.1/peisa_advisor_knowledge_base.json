@@ -1,0 +1,188 @@
+[
+  {
+    "id": "inicio",
+    "pregunta": "¿Qué tipo de calefacción desea calcular?",
+    "opciones": [
+      { "texto": "Piso radiante", "siguiente": "superficie_piso" },
+      { "texto": "Radiadores", "siguiente": "objetivo_radiadores" }
+    ]
+  },
+  {
+    "id": "superficie_piso",
+    "pregunta": "¿Cuál es la superficie útil a calefaccionar con piso radiante (en m²)?",
+    "tipo": "entrada_usuario",
+    "variable": "superficie",
+    "siguiente": "tipo_piso"
+  },
+  {
+    "id": "tipo_piso",
+    "pregunta": "¿Qué tipo de pavimento tiene el ambiente?",
+    "opciones": [
+      { "texto": "Cerámica / Mármol / Cemento alisado", "valor": "ceramica", "siguiente": "zona_geografica" },
+      { "texto": "Madera fina / Parquet / PVC", "valor": "madera", "siguiente": "zona_geografica" },
+      { "texto": "Alfombra fina", "valor": "alfombra", "siguiente": "zona_geografica" }
+    ]
+  },
+  {
+    "id": "zona_geografica",
+    "pregunta": "¿En qué zona del país se encuentra la instalación?",
+    "opciones": [
+      { "texto": "Zona Centro/Norte", "valor": "norte", "siguiente": "calculo_piso_radiante" },
+      { "texto": "Zona Sur", "valor": "sur", "siguiente": "calculo_piso_radiante" }
+    ]
+  },
+  {
+    "id": "calculo_piso_radiante",
+    "tipo": "calculo",
+    "descripcion": "Cálculo de piso radiante",
+    "parametros": {
+      "potencia_m2": { "norte": 100, "sur": 125 },
+      "densidad_caño": 5,
+      "longitud_maxima_circuito": 100
+    },
+    "acciones": [
+      "carga_termica = superficie * potencia_m2[zona_geografica]",
+      "longitud_total = superficie * densidad_caño",
+      "circuitos = ceil(longitud_total / longitud_maxima_circuito)"
+    ],
+    "siguiente": "resultado_piso_radiante"
+  },
+  {
+    "id": "resultado_piso_radiante",
+    "tipo": "respuesta",
+    "texto": "PISO RADIANTE:\n- Superficie: {{superficie}} m²\n- Potencia estimada: {{carga_termica}} W\n- Caños: {{longitud_total}} m\n- Circuitos sugeridos: {{circuitos}} de hasta 100 m\n\n¿Deseás calcular también RADIADORES para otro ambiente?",
+    "opciones": [
+      { "texto": "Sí", "siguiente": "objetivo_radiadores" },
+      { "texto": "No", "siguiente": "fin" }
+    ]
+  },
+  {
+    "id": "objetivo_radiadores",
+    "pregunta": "¿Cuál es el principal objetivo para los radiadores?",
+    "opciones": [
+      { "texto": "Calefacción principal de ambiente", "valor": "principal", "siguiente": "dimensiones_radiador" },
+      { "texto": "Calefacción complementaria", "valor": "complementaria", "siguiente": "dimensiones_radiador" },
+      { "texto": "Secado de toallas (baño)", "valor": "toallero", "siguiente": "seleccion_toallero" }
+    ]
+  },
+  {
+    "id": "seleccion_toallero",
+    "tipo": "respuesta",
+    "texto": "Para secado de toallas recomendamos el modelo TOALLERO SCALA:\n- Altura: 800/1500 mm\n- Ancho: 500 mm\n- Potencia: 632/1174 kcal/h\n- Material: Acero\n- Colores: Blanco y cromo",
+    "opciones": [
+      { "texto": "Calcular otro radiador", "siguiente": "inicio" },
+      { "texto": "Finalizar", "siguiente": "fin" }
+    ]
+  },
+  {
+    "id": "dimensiones_radiador",
+    "pregunta": "Indique las dimensiones del ambiente (largo, ancho y alto en metros):",
+    "tipo": "entrada_usuario",
+    "variables": ["largo", "ancho", "alto"],
+    "siguiente": "nivel_aislacion"
+  },
+  {
+    "id": "nivel_aislacion",
+    "pregunta": "Nivel de aislación térmica del ambiente:",
+    "opciones": [
+      { "texto": "Alta (doble vidrio, aislación en paredes)", "valor": "alta", "siguiente": "tipo_instalacion" },
+      { "texto": "Media (vidrio simple, algunas paredes aisladas)", "valor": "media", "siguiente": "tipo_instalacion" },
+      { "texto": "Baja (sin aislación significativa)", "valor": "baja", "siguiente": "tipo_instalacion" }
+    ]
+  },
+  {
+    "id": "tipo_instalacion",
+    "pregunta": "Tipo de instalación preferida:",
+    "opciones": [
+      { "texto": "Empotrada", "valor": "empotrada", "siguiente": "estilo_diseno" },
+      { "texto": "Superficie", "valor": "superficie", "siguiente": "estilo_diseno" },
+      { "texto": "No tengo preferencia", "valor": "cualquiera", "siguiente": "estilo_diseno" }
+    ]
+  },
+  {
+    "id": "estilo_diseno",
+    "pregunta": "Estilo de diseño preferido:",
+    "opciones": [
+      { "texto": "Moderno/minimalista", "valor": "moderno", "siguiente": "color_preferido" },
+      { "texto": "Clásico/tradicional", "valor": "clasico", "siguiente": "color_preferido" },
+      { "texto": "No tengo preferencia", "valor": "cualquiera", "siguiente": "color_preferido" }
+    ]
+  },
+  {
+    "id": "color_preferido",
+    "pregunta": "Color preferido para los radiadores:",
+    "opciones": [
+      { "texto": "Blanco", "valor": "blanco", "siguiente": "recomendar_modelos" },
+      { "texto": "Negro", "valor": "negro", "siguiente": "recomendar_modelos" },
+      { "texto": "Cromo", "valor": "cromo", "siguiente": "recomendar_modelos" },
+      { "texto": "No tengo preferencia", "valor": "cualquiera", "siguiente": "recomendar_modelos" }
+    ]
+  },
+  {
+    "id": "recomendar_modelos",
+    "tipo": "calculo",
+    "descripcion": "Filtrar modelos según preferencias",
+    "acciones": [
+        "volumen = largo * ancho * alto",
+        "carga_termica = volumen * (50 if nivel_aislacion == 'baja' else 40 if nivel_aislacion == 'media' else 30)",
+        "modelos_recomendados = filter_radiators(objetivo_radiadores, tipo_instalacion, estilo_diseno, color_preferido, carga_termica)",
+        "modelos_recomendados_formateados = format_radiator_recommendations(modelos_recomendados, carga_termica)"
+    ],
+    "siguiente": "mostrar_recomendaciones"
+  },
+  {
+  "id": "mostrar_recomendaciones",
+  "tipo": "respuesta",
+  "texto": "Basado en tus necesidades, te recomendamos:\n\n{{modelos_recomendados_formateados}}",
+  "opciones": [
+    { "texto": "Realizar nuevo cálculo", "siguiente": "inicio" },
+    { "texto": "Terminar los cálculos", "siguiente": "fin" }
+  ]
+  },
+  {
+    "id": "seleccion_modelo_recomendado",
+    "pregunta": "Seleccione el modelo que desea utilizar:",
+    "tipo": "opciones_dinamicas",
+    "source": "modelos_recomendados",
+    "siguiente": "calcular_modulos"
+  },
+  {
+    "id": "seleccion_modelo",
+    "pregunta": "Seleccione el modelo de radiador:",
+    "opciones": [
+      { "texto": "TROPICAL 350", "valor": "T350", "coeficiente": 0.75, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "TROPICAL 500", "valor": "T500", "coeficiente": 1.0, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "TROPICAL 600", "valor": "T600", "coeficiente": 1.16, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "BROEN 350", "valor": "Broen350", "coeficiente": 0.75, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "BROEN 500", "valor": "Broen500", "coeficiente": 1.0, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "BROEN 600", "valor": "Broen600", "coeficiente": 1.16, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "BROEN PLUS 700", "valor": "BroenPlus700", "coeficiente": 1.27, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "BROEN PLUS 800", "valor": "BroenPlus800", "coeficiente": 1.4, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "BROEN PLUS 1000", "valor": "BroenPlus1000", "coeficiente": 1.65, "potencia": 185, "siguiente": "calcular_modulos" },
+      { "texto": "GAMMA 500", "valor": "Gamma500", "coeficiente": 0.93, "potencia": 185, "siguiente": "calcular_modulos" }
+    ]
+  },
+  {
+    "id": "calcular_modulos",
+    "tipo": "calculo",
+    "descripcion": "Calcular módulos necesarios",
+    "acciones": [
+      "modulos = ceil(carga_termica / (potencia * coeficiente))"
+    ],
+    "siguiente": "resultado_final_radiador"
+  },
+  {
+    "id": "resultado_final_radiador",
+    "tipo": "respuesta",
+    "texto": "RESULTADO FINAL:\n- Ambiente: {{largo}}m x {{ancho}}m x {{alto}}m\n- Carga térmica: {{carga_termica}} kcal/h\n- Modelo seleccionado: {{modelo_seleccionado}}\n- Módulos necesarios: {{modulos}}\n\n¿Qué deseas hacer ahora?",
+    "opciones": [
+      { "texto": "Calcular otro radiador", "siguiente": "inicio" },
+      { "texto": "Finalizar", "siguiente": "fin" }
+    ]
+  },
+  {
+    "id": "fin",
+    "tipo": "respuesta",
+    "texto": "Gracias por usar PEISA Advisor. ¡Tu recomendación está lista!"
+  }
+]
